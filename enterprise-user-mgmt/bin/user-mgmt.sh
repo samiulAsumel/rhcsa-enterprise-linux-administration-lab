@@ -45,15 +45,16 @@ show_help() {
     Usage: $0 [OPTIONS] COMMAND [ARGS]
 
     Commands:
-    create-users            Create standard development users
-    create-groups           Create required groups
-    assign-groups           Assign users to appropriate groups
-    configure-sudo          Configure sudo access for admins
-    set-password-policies   Apply password expiration policies
-    lock-user   USER        Lock specified user account
-    unlock-user USER        Unlock specified user account
-    status                  Show current user and group configuration
-    validate-config         Validate current setup against requirements
+    create-user USERNAME    Create a single user with specified name
+    create-users           Create standard development users
+    create-groups          Create required groups
+    assign-groups          Assign users to appropriate groups
+    configure-sudo         Configure sudo access for admins
+    set-password-policies  Apply password expiration policies
+    lock-user   USER       Lock specified user account
+    unlock-user USER       Unlock specified user account
+    status                 Show current user and group configuration
+    validate-config        Validate current setup against requirements
 
     Options:
     -c, --config FILE       Use alternative configuration file
@@ -65,6 +66,8 @@ show_help() {
     --version               Display version information
 
     Examples:
+    $0 create-user john
+    $0 create-user alice --group developers
     $0 create-users
     $0 --dry-run configure-sudo
     $0 lock-user dev2
@@ -116,7 +119,7 @@ parse_args() {
                 echo "User Management Script v2.1.1"
                 exit 0
                 ;;
-            create-users|create-groups|assign-groups|configure-sudo|set-password-policy|lock-user|unlock-user|status|validate)
+            create-user|create-users|create-groups|assign-groups|configure-sudo|set-password-policy|lock-user|unlock-user|status|validate)
     COMMAND="$1"
     shift
     # Handle command-specific arguments
@@ -124,6 +127,14 @@ parse_args() {
         lock-user|unlock-user)
             if [[ $# -lt 1 ]]; then
                 log_error "Username required for $COMMAND"
+                exit 2
+            fi
+            TARGET_USER="$1"
+            shift
+            ;;
+        create-user)
+            if [[ $# -lt 1 ]]; then
+                log_error "Username required for create-user"
                 exit 2
             fi
             TARGET_USER="$1"
@@ -165,6 +176,9 @@ main() {
     log_debug "Dry run: $DRY_RUN"
 
     case $COMMAND in
+        create-user)
+            create_single_user "$TARGET_USER"
+            ;;
         create-users)
             create_development_users
             ;;

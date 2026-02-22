@@ -41,6 +41,48 @@ create_development_users() {
 	log_info "User creation completed"
 }
 
+# Create a single custom user
+create_single_user() {
+	require_root
+
+	local username="$1"
+
+	# Validate username format
+	if ! validate_username "$username"; then
+		log_error "Invalid username: $username"
+		return 2
+	fi
+
+	# Check if user already exists
+	if user_exists "$username"; then
+		log_warn "User $username already exists, skipping"
+		return 0
+	fi
+
+	log_info "Creating user: $username"
+
+	# Create user with home directory and default shell
+	if ! run_cmd "useradd -m -d ${CONFIG[home_base]}/$username -s ${CONFIG[default_shell]} -c 'Custom User $username' $username" "Create user $username"; then
+		log_error "Failed to create user $username"
+		return 5
+	fi
+
+	# Set initial password (expired to force change)
+	if ! run_cmd "echo '$username:ChangeMe123!' | chpasswd" "Set initial password for $username"; then
+		log_error "Failed to set password for $username"
+		return 5
+	fi
+
+	# Force password change on first login
+	if ! run_cmd "chage -d 0 $username" "Force password change for $username"; then
+		log_error "Failed to set password expiration for $username"
+		return 5
+	fi
+
+	log_info "Successfully created user: $username"
+	log_info "User will be prompted to change password on first login"
+}
+
 # Create required groups
 create_required_groups() {
 	require_root
