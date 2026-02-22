@@ -41,11 +41,22 @@ create_development_users() {
 	log_info "User creation completed"
 }
 
-# Create a single custom user
+# Create a single custom user with full control options
+# Usage: create_single_user USERNAME [OPTIONS]
+# Options:
+#   --shell SHELL         Set login shell (default: bash)
+#   --home-dir DIR       Set home directory (default: /home/username)
+#   --password PASS       Set initial password (default: ChangeMe123!)
+#   --no-force-change    Don't force password change on first login
+#   --groups "GROUP1,GROUP2"  Add user to specified groups
+#   --comment "TEXT"     Set user comment field
+#   --uid NUM            Set specific user ID
+#   --gid NUM            Set specific group ID
 create_single_user() {
 	require_root
 
 	local username="$1"
+	shift
 
 	# Validate username format
 	if ! validate_username "$username"; then
@@ -59,28 +70,112 @@ create_single_user() {
 		return 0
 	fi
 
-	log_info "Creating user: $username"
+	# Default values
+	local user_shell="${CONFIG[default_shell]}"
+	local user_home="${CONFIG[home_base]}/$username"
+	local user_password="ChangeMe123!"
+	local force_change=true
+	local user_groups=""
+	local user_comment="Custom User $username"
+	local user_uid=""
+	local user_gid=""
 
-	# Create user with home directory and default shell
-	if ! run_cmd "useradd -m -d ${CONFIG[home_base]}/$username -s ${CONFIG[default_shell]} -c 'Custom User $username' $username" "Create user $username"; then
+	# Parse options
+	while [[ $# -gt 0 ]]; do
+		case $1 in
+			--shell)
+				user_shell="$2"
+				shift 2
+				;;
+			--home-dir)
+				user_home="$2"
+				shift 2
+				;;
+			--password)
+				user_password="$2"
+				shift 2
+				;;
+			--no-force-change)
+				force_change=false
+				shift
+				;;
+			--groups)
+				user_groups="$2"
+				shift 2
+				;;
+			--comment)
+				user_comment="$2"
+				shift 2
+				;;
+			--uid)
+				user_uid="$2"
+				shift 2
+				;;
+			--gid)
+				user_gid="$2"
+				shift 2
+				;;
+			*)
+				log_error "Unknown option: $1"
+				return 2
+				;;
+		esac
+	done
+
+	log_info "Creating user: $username with custom options"
+	log_debug "Shell: $user_shell"
+	log_debug "Home: $user_home"
+	log_debug "Groups: $user_groups"
+	log_debug "Force change: $force_change"
+
+	# Build useradd command
+	local useradd_cmd="useradd -m"
+	[[ -n "$user_home" ]] && useradd_cmd="$useradd_cmd -d $user_home"
+	[[ -n "$user_shell" ]] && useradd_cmd="$useradd_cmd -s $user_shell"
+	[[ -n "$user_comment" ]] && useradd_cmd="$useradd_cmd -c '$user_comment'"
+	[[ -n "$user_uid" ]] && useradd_cmd="$useradd_cmd -u $user_uid"
+	[[ -n "$user_gid" ]] && useradd_cmd="$useradd_cmd -g $user_gid"
+	useradd_cmd="$useradd_cmd $username"
+
+	# Create user
+	if ! run_cmd "$useradd_cmd" "Create user $username"; then
 		log_error "Failed to create user $username"
 		return 5
 	fi
 
-	# Set initial password (expired to force change)
-	if ! run_cmd "echo '$username:ChangeMe123!' | chpasswd" "Set initial password for $username"; then
+	# Set initial password
+	if ! run_cmd "echo '$username:$user_password' | chpasswd" "Set initial password for $username"; then
 		log_error "Failed to set password for $username"
 		return 5
 	fi
 
-	# Force password change on first login
-	if ! run_cmd "chage -d 0 $username" "Force password change for $username"; then
-		log_error "Failed to set password expiration for $username"
-		return 5
+	# Force password change on first login if requested
+	if [[ "$force_change" == "true" ]]; then
+		if ! run_cmd "chage -d 0 $username" "Force password change for $username"; then
+			log_error "Failed to set password expiration for $username"
+			return 5
+		fi
+	fi
+
+	# Add user to groups if specified
+	if [[ -n "$user_groups" ]]; then
+		IFS=',' read -ra groups_array <<< "$user_groups"
+		for group in "${groups_array[@]}"; do
+			group=$(echo "$group" | xargs) # Trim whitespace
+			if group_exists "$group"; then
+				log_info "Adding $username to group: $group"
+				if ! run_cmd "usermod -aG $group $username" "Add $username to group $group"; then
+					log_warn "Failed to add $username to group $group"
+				fi
+			else
+				log_warn "Group $group does not exist, skipping"
+			fi
+		done
 	fi
 
 	log_info "Successfully created user: $username"
-	log_info "User will be prompted to change password on first login"
+	[[ "$force_change" == "true" ]] && log_info "User will be prompted to change password on first login"
+	[[ -n "$user_groups" ]] && log_info "User added to groups: $user_groups"
 }
 
 # Create required groups

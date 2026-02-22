@@ -67,7 +67,9 @@ show_help() {
 
     Examples:
     $0 create-user john
-    $0 create-user alice --group developers
+    $0 create-user alice --shell /bin/zsh --password MyPass123!
+    $0 create-user bob --home-dir /custom/home/bob --groups "developers,admins"
+    $0 create-user sarah --comment "Developer Account" --uid 1500 --no-force-change
     $0 create-users
     $0 --dry-run configure-sudo
     $0 lock-user dev2
@@ -139,6 +141,9 @@ parse_args() {
             fi
             TARGET_USER="$1"
             shift
+            # Store remaining arguments for create_single_user function
+            CREATE_USER_ARGS=("$@")
+            shift $#
             ;;
         esac
         ;;
@@ -177,7 +182,7 @@ main() {
 
     case $COMMAND in
         create-user)
-            create_single_user "$TARGET_USER"
+            create_single_user "$TARGET_USER" "${CREATE_USER_ARGS[@]}"
             ;;
         create-users)
             create_development_users
