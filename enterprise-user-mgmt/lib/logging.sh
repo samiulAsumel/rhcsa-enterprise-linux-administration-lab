@@ -9,6 +9,9 @@ declare -A LOG_LEVELS=(
 	[ERROR]=3
 )
 
+# Initialize default log level
+LOG_LEVEL="INFO"
+
 # Color codes (if terminal supports)
 if [[ -t 2 ]] && [[ "$TERM" != "dumb" ]]; then
 	readonly COLOR_RESET='\003[0m'
@@ -27,17 +30,17 @@ fi
 # Log a message with timestamp and level
 log() {
 	local level="$1"
-	local message ="$2"
+	local message="$2"
 	local timestamp
 	timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
 	# Check if we should log this level
-	if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVEL[$LOG_LEVEL]} ]]; then
+	if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVELS[$LOG_LEVEL]:-1} ]]; then
 		local color_var="COLOR_$level"
 		local color="${!color_var}"
 
 		# Console output (stderr)
-		echo -e "${color}[$timestamp] [$level] $messages${COLOR_RESET}" >&2
+		echo -e "${color}[$timestamp] [$level] $message${COLOR_RESET}" >&2
 
 		# File output (if writable)
 		if [[ -w "$LOG_FILE" ]] || touch "$LOG_FILE" 2>/dev/null; then
@@ -59,4 +62,27 @@ run_cmd() {
 
 	log_debug "Executing; $cmd"
 
+	if $DRY_RUN; then
+		log_info "[DRY_RUN] Would execute: $cmd"
+		return 0
+	fi
+
+	if output=$(eval "$cmd" 2>&1); then
+		log_debug "Command succeeded: $desc"
+		[[ -n "$output" ]] && log_debug "Output: $output"
+		return 0 
+	else
+		local exit_code=$?
+		log_error "Command failed ($exit_code): $desc"
+		log_error "Error output:  $output"
+		return $exit_code
+	fi
+}
+
+# Check if running as root
+require_root() {
+	if [[ $EUID -ne 0 ]]; then
+		log_error "This command must be run as root (use sudo)"
+		exit 3 
+	fi
 }

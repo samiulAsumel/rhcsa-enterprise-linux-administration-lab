@@ -10,7 +10,7 @@ BASE_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="${BASE_DIR}/etc/user-mgmt.conf"
 LOG_FILE="/var/log/user-mgmt.log"
 
-# Sopurce liberie
+# Source libraries
 source "${BASE_DIR}/lib/logging.sh"
 source "${BASE_DIR}/lib/validation.sh"
 source "${BASE_DIR}/lib/user-operations.sh"
@@ -31,7 +31,7 @@ load_config() {
     if [[ -f "$CONFIG_FILE" ]]; then
         # shellcheck source=/dev/null
         source "$CONFIG_FILE"
-        log_info "Loaded configuration from "${CONFIG_FILE}""
+        log_info "Loaded configuration from ${CONFIG_FILE}"
     else
         log_warning "Configuration file not found, using default values"
     fi
@@ -96,7 +96,7 @@ parse_args() {
                 LOG_FILE="$2"
                 shift 2
                 ;;
-            -d|--dry-rub)
+            -d|--dry-run)
                 DRY_RUN=true
                 shift
                 ;;
@@ -123,7 +123,7 @@ parse_args() {
     case $COMMAND in
         lock-user|unlock-user)
             if [[ $# -lt 1 ]]; then
-                log_error "Username rwquire for $COMMAND"
+                log_error "Username required for $COMMAND"
                 exit 2
             fi
             TARGET_USER="$1"
@@ -139,7 +139,7 @@ parse_args() {
     esac
 done
 
-if [[ -z "$COMMAND:-}" ]]; then
+if [[ -z "${COMMAND:-}" ]]; then
     log_error "No command specified"
     show_help
     exit 2
@@ -183,7 +183,7 @@ main() {
         lock-user)
             lock_user_account "$TARGET_USER"
             ;;
-        unlock_user)
+        unlock-user)
             unlock_user_account "$TARGET_USER"
             ;;
         status)
@@ -194,7 +194,7 @@ main() {
             ;;
     esac
 
-    log_info "Command 'COMMAND' completed successfully"
+    log_info "Command '$COMMAND' completed successfully"
 }
 
 # Trap errors
@@ -202,6 +202,6 @@ trap 'log_error "Error on line $LINENO"; exit 1' ERR
 
 # Run main if not sources
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    parse_args "$0"
+    parse_args "$@"
     main
 fi
