@@ -1,59 +1,95 @@
 #!/usr/bin/env bash
-# Logging utilities for user-mgmt system
+# Enterprise Logging utilities for user-mgmt system
+# Compliance: Syslog standards, Audit requirements, Security logging
 
-# Log levels
-declare -A LOG_LEVELS=(
+# Log levels following syslog convention
+declare -grA LOG_LEVELS=(
 	[DEBUG]=0
 	[INFO]=1
 	[WARN]=2
 	[ERROR]=3
+	[CRITICAL]=4
 )
 
 # Initialize default log level
 LOG_LEVEL="INFO"
 
-# Color codes (if terminal supports)
+# Enterprise color codes (if terminal supports)
 if [[ -t 2 ]] && [[ "$TERM" != "dumb" ]]; then
-	readonly COLOR_RESET='\003[0m'
-	readonly COLOR_DEBUG='\003[36m' # Cyan
-	readonly COLOR_INFO='\003[32m'  # Green
-	readonly COLOR_WARN='\003[33m'  # Yellow
-	readonly COLOR_ERROR='\003[31m' # Red
+	readonly COLOR_RESET='\033[0m'
+	readonly COLOR_DEBUG='\033[36m' # Cyan
+	readonly COLOR_INFO='\033[32m'  # Green
+	readonly COLOR_WARN='\033[33m'  # Yellow
+	readonly COLOR_ERROR='\033[31m' # Red
+	readonly COLOR_CRITICAL='\033[35m' # Magenta
 else
 	readonly COLOR_RESET=''
 	readonly COLOR_DEBUG=''
 	readonly COLOR_INFO=''
 	readonly COLOR_WARN=''
 	readonly COLOR_ERROR=''
+	readonly COLOR_CRITICAL=''
 fi
 
-# Log a message with timestamp and level
+# Enterprise log function with audit capabilities
 log() {
 	local level="$1"
 	local message="$2"
 	local timestamp
 	timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+	local hostname
+	hostname=$(hostname)
+	local pid=$$
 
 	# Check if we should log this level
 	if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVELS[$LOG_LEVEL]:-1} ]]; then
 		local color_var="COLOR_$level"
 		local color="${!color_var}"
 
-		# Console output (stderr)
-		echo -e "${color}[$timestamp] [$level] $message${COLOR_RESET}" >&2
+		# Console output (stderr) with structured format
+		echo -e "${color}[$timestamp] [$hostname:$pid] [$level] $message${COLOR_RESET}" >&2
 
 		# File output (if writable)
 		if [[ -w "$LOG_FILE" ]] || touch "$LOG_FILE" 2>/dev/null; then
-			echo "[$timestamp] [$level] $message" >>"$LOG_FILE"
+			echo "[$timestamp] [$hostname:$pid] [$level] $message" >>"$LOG_FILE"
+		fi
+		
+		# Critical messages also go to audit log
+		if [[ "$level" == "CRITICAL" ]] && [[ -n "${CONFIG[audit_log]:-}" ]]; then
+			if [[ -w "${CONFIG[audit_log]}" ]] || touch "${CONFIG[audit_log]}" 2>/dev/null; then
+				echo "[$timestamp] [$hostname:$pid] [AUDIT] [CRITICAL] $message" >>"${CONFIG[audit_log]}"
+			fi
 		fi
 	fi
 }
 
-# Convenience functions
+# Convenience functions with enterprise naming
 log_debug() { log "DEBUG" "$*"; }
 log_info() { log "INFO" "$*"; }
 log_warn() { log "WARN" "$*"; }
 log_error() { log "ERROR" "$*"; }
+log_critical() { log "CRITICAL" "$*"; }
+
+# Audit logging for security events
+log_audit() {
+	local event="$1"
+	local user="$2"
+	local action="$3"
+	local timestamp
+	timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+	local hostname
+	hostname=$(hostname)
+	local pid=$$
+	
+	if [[ -n "${CONFIG[audit_log]:-}" ]]; then
+		if [[ -w "${CONFIG[audit_log]}" ]] || touch "${CONFIG[audit_log]}" 2>/dev/null; then
+			echo "[$timestamp] [$hostname:$pid] [AUDIT] [EVENT:$event] [USER:$user] [ACTION:$action]" >>"${CONFIG[audit_log]}"
+		fi
+	fi
+	
+	# Also log to regular log
+	log_info "AUDIT: $event - User: $user - Action: $action"
+}
 
 # Execute command with logging
 run_cmd() {
