@@ -3,6 +3,7 @@
 # Compliance: CIS Benchmarks, NIST 800-53, Security hardening
 
 # Security constants
+# shellcheck disable=SC2034  # Constants reserved for future security enhancements
 readonly MIN_PASSWORD_LENGTH=12
 readonly MAX_PASSWORD_LENGTH=128
 readonly PASSWORD_COMPLEXITY_REQUIRED=true

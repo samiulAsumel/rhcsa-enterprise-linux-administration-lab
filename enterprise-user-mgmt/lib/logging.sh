@@ -15,6 +15,7 @@ declare -grA LOG_LEVELS=(
 LOG_LEVEL="INFO"
 
 # Enterprise color codes (if terminal supports)
+# shellcheck disable=SC2034  # Variables are used dynamically via indirection
 if [[ -t 2 ]] && [[ "$TERM" != "dumb" ]]; then
 	readonly COLOR_RESET='\033[0m'
 	readonly COLOR_DEBUG='\033[36m' # Cyan
