@@ -3,13 +3,15 @@
 # Compliance: Syslog standards, Audit requirements, Security logging
 
 # Log levels following syslog convention
-declare -grA LOG_LEVELS=(
-	[DEBUG]=0
-	[INFO]=1
-	[WARN]=2
-	[ERROR]=3
-	[CRITICAL]=4
-)
+if ! declare -p LOG_LEVELS &>/dev/null; then
+    declare -gA LOG_LEVELS=(
+        [DEBUG]=0
+        [INFO]=1
+        [WARN]=2
+        [ERROR]=3
+        [CRITICAL]=4
+    )
+fi
 
 # Initialize default log level
 LOG_LEVEL="INFO"
@@ -17,19 +19,19 @@ LOG_LEVEL="INFO"
 # Enterprise color codes (if terminal supports)
 # shellcheck disable=SC2034  # Variables are used dynamically via indirection
 if [[ -t 2 ]] && [[ "$TERM" != "dumb" ]]; then
-	readonly COLOR_RESET='\033[0m'
-	readonly COLOR_DEBUG='\033[36m' # Cyan
-	readonly COLOR_INFO='\033[32m'  # Green
-	readonly COLOR_WARN='\033[33m'  # Yellow
-	readonly COLOR_ERROR='\033[31m' # Red
-	readonly COLOR_CRITICAL='\033[35m' # Magenta
+	[[ -z "${COLOR_RESET:-}" ]] && declare -g COLOR_RESET='\033[0m'
+	[[ -z "${COLOR_DEBUG:-}" ]] && declare -g COLOR_DEBUG='\033[36m' # Cyan
+	[[ -z "${COLOR_INFO:-}" ]] && declare -g COLOR_INFO='\033[32m'  # Green
+	[[ -z "${COLOR_WARN:-}" ]] && declare -g COLOR_WARN='\033[33m'  # Yellow
+	[[ -z "${COLOR_ERROR:-}" ]] && declare -g COLOR_ERROR='\033[31m' # Red
+	[[ -z "${COLOR_CRITICAL:-}" ]] && declare -g COLOR_CRITICAL='\033[35m' # Magenta
 else
-	readonly COLOR_RESET=''
-	readonly COLOR_DEBUG=''
-	readonly COLOR_INFO=''
-	readonly COLOR_WARN=''
-	readonly COLOR_ERROR=''
-	readonly COLOR_CRITICAL=''
+	[[ -z "${COLOR_RESET:-}" ]] && declare -g COLOR_RESET=''
+	[[ -z "${COLOR_DEBUG:-}" ]] && declare -g COLOR_DEBUG=''
+	[[ -z "${COLOR_INFO:-}" ]] && declare -g COLOR_INFO=''
+	[[ -z "${COLOR_WARN:-}" ]] && declare -g COLOR_WARN=''
+	[[ -z "${COLOR_ERROR:-}" ]] && declare -g COLOR_ERROR=''
+	[[ -z "${COLOR_CRITICAL:-}" ]] && declare -g COLOR_CRITICAL=''
 fi
 
 # Enterprise log function with audit capabilities
@@ -91,6 +93,14 @@ log_audit() {
 	# Also log to regular log
 	log_info "AUDIT: $event - User: $user - Action: $action"
 }
+
+# Convenience logging functions
+log_debug() { log "DEBUG" "$1"; }
+log_info() { log "INFO" "$1"; }
+log_warn() { log "WARN" "$1"; }
+log_warning() { log "WARN" "$1"; }
+log_error() { log "ERROR" "$1"; }
+log_critical() { log "CRITICAL" "$1"; }
 
 # Execute command with logging
 run_cmd() {
