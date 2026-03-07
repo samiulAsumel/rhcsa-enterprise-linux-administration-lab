@@ -81,15 +81,18 @@ The Enterprise User Management System provides **production-ready user and group
 
 ### **Modular Library Architecture**
 
-```
+```text
 enterprise-user-mgmt/
 ├── bin/
-│   └── user-mgmt.sh          # Main CLI interface
+│   └── ugm.sh                # Main CLI interface (User & Group Management)
 ├── lib/
 │   ├── logging.sh            # Enterprise logging system
 │   ├── validation.sh         # Input validation utilities
 │   ├── security.sh           # Security functions & hardening
-│   └── user-operations.sh    # Core user/group operations
+│   ├── user-operations.sh    # Core user operations
+│   ├── user_ops.sh           # User management utilities
+│   ├── group_ops.sh          # Group management utilities
+│   └── sudo_ops.sh           # Sudo operations management
 ├── etc/
 │   └── user-mgmt.conf        # Enterprise configuration
 ├── tests/
@@ -165,46 +168,46 @@ enterprise-user-mgmt/
 
 ```bash
 # Create a user with enterprise settings
-sudo ./bin/user-mgmt.sh create-user john
+sudo ./bin/ugm.sh create-user john
 
 # Create user with custom settings
-sudo ./bin/user-mgmt.sh create-user alice \
+sudo ./bin/ugm.sh create-user alice \
     --shell /bin/zsh \
     --groups "developers,admins" \
     --comment "Senior Developer"
 
 # Create multiple development users
-sudo ./bin/user-mgmt.sh create-users
+sudo ./bin/ugm.sh create-users
 
 # Generate secure password
-./bin/user-mgmt.sh generate-password 16
+./bin/ugm.sh generate-password 16
 ```
 
 ### **Security Operations**
 
 ```bash
 # Harden user account security
-sudo ./bin/user-mgmt.sh harden-user john
+sudo ./bin/ugm.sh harden-user john
 
 # Perform security audit
-sudo ./bin/user-mgmt.sh audit-user alice
+sudo ./bin/ugm.sh audit-user alice
 
 # Lock/unlock user accounts
-sudo ./bin/user-mgmt.sh lock-user john
-sudo ./bin/user-mgmt.sh unlock-user john
+sudo ./bin/ugm.sh lock-user john
+sudo ./bin/ugm.sh unlock-user john
 ```
 
 ### **System Management**
 
 ```bash
 # Validate system configuration
-sudo ./bin/user-mgmt.sh validate-config
+sudo ./bin/ugm.sh validate-config
 
 # Show system status
-sudo ./bin/user-mgmt.sh status
+sudo ./bin/ugm.sh status
 
 # Apply password policies
-sudo ./bin/user-mgmt.sh set-password-policies
+sudo ./bin/ugm.sh set-password-policies
 ```
 
 ---
@@ -247,14 +250,14 @@ git clone <repository-url>
 cd enterprise-user-mgmt
 
 # Make scripts executable
-chmod +x bin/user-mgmt.sh
+chmod +x bin/ugm.sh
 chmod +x tests/test-enterprise.sh
 
 # Test the installation
 ./tests/test-enterprise.sh
 
 # Optional: Install system-wide
-sudo ln -s $(pwd)/bin/user-mgmt.sh /usr/local/bin/user-mgmt
+sudo ln -s $(pwd)/bin/ugm.sh /usr/local/bin/ugm
 ```
 
 ---
