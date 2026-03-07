@@ -83,8 +83,9 @@ The Enterprise User Management System provides **production-ready user and group
 
 ```text
 enterprise-user-mgmt/
+├── ugm.sh                   # Main CLI interface (User & Group Management)
 ├── bin/
-│   └── ugm.sh                # Main CLI interface (User & Group Management)
+│   └── ugm.sh                # Original modular script
 ├── lib/
 │   ├── logging.sh            # Enterprise logging system
 │   ├── validation.sh         # Input validation utilities
@@ -168,46 +169,46 @@ enterprise-user-mgmt/
 
 ```bash
 # Create a user with enterprise settings
-sudo ./bin/ugm.sh create-user john
+sudo ./ugm.sh create-user john
 
 # Create user with custom settings
-sudo ./bin/ugm.sh create-user alice \
+sudo ./ugm.sh create-user alice \
     --shell /bin/zsh \
     --groups "developers,admins" \
     --comment "Senior Developer"
 
 # Create multiple development users
-sudo ./bin/ugm.sh create-users
+sudo ./ugm.sh create-users
 
 # Generate secure password
-./bin/ugm.sh generate-password 16
+./ugm.sh generate-password 16
 ```
 
 ### **Security Operations**
 
 ```bash
 # Harden user account security
-sudo ./bin/ugm.sh harden-user john
+sudo ./ugm.sh harden-user john
 
 # Perform security audit
-sudo ./bin/ugm.sh audit-user alice
+sudo ./ugm.sh audit-user alice
 
 # Lock/unlock user accounts
-sudo ./bin/ugm.sh lock-user john
-sudo ./bin/ugm.sh unlock-user john
+sudo ./ugm.sh lock-user john
+sudo ./ugm.sh unlock-user john
 ```
 
 ### **System Management**
 
 ```bash
 # Validate system configuration
-sudo ./bin/ugm.sh validate-config
+sudo ./ugm.sh validate-config
 
 # Show system status
-sudo ./bin/ugm.sh status
+sudo ./ugm.sh status
 
 # Apply password policies
-sudo ./bin/ugm.sh set-password-policies
+sudo ./ugm.sh set-password-policies
 ```
 
 ---
@@ -250,14 +251,14 @@ git clone <repository-url>
 cd enterprise-user-mgmt
 
 # Make scripts executable
-chmod +x bin/ugm.sh
+chmod +x ugm.sh
 chmod +x tests/test-enterprise.sh
 
 # Test the installation
 ./tests/test-enterprise.sh
 
 # Optional: Install system-wide
-sudo ln -s $(pwd)/bin/ugm.sh /usr/local/bin/ugm
+sudo ln -s $(pwd)/ugm.sh /usr/local/bin/ugm
 ```
 
 ---
